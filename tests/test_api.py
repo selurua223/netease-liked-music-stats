@@ -57,11 +57,12 @@ def test_api_analysis_and_report_routes(tmp_path: Path):
             "requested_count": 3,
             "returned_count": 3,
             "missing_count": 0,
+            "unexpected_count": 0,
             "warnings": [],
         }
         summary["metadata"] = {
             "generatedAt": "2026-10-31T00:00:00+00:00",
-            "projectVersion": "0.2.0",
+            "projectVersion": "0.4.0",
         }
         metadata = {
             "reportId": out_dir.name,
@@ -79,6 +80,7 @@ def test_api_analysis_and_report_routes(tmp_path: Path):
             playlist,
             [10, 11, 12],
             [],
+            raw_songs,
             metadata,
         )
         return summary
@@ -105,7 +107,7 @@ def test_api_analysis_and_report_routes(tmp_path: Path):
     summary = client.get(f"/api/reports/{report_id}")
     assert summary.status_code == 200
     assert summary.json()["overview"]["fetchedSongCount"] == 3
-    assert summary.json()["profile"]["version"] == "1.0"
+    assert summary.json()["profile"]["version"] == "1.1"
 
     songs = client.get(
         f"/api/reports/{report_id}/songs",
@@ -114,6 +116,13 @@ def test_api_analysis_and_report_routes(tmp_path: Path):
     assert songs.status_code == 200
     assert songs.json()["total"] == 2
     assert songs.json()["items"][0]["durationMs"] == 220000
+
+    selected_song = client.get(
+        f"/api/reports/{report_id}/songs",
+        params={"song_ids": "10,12"},
+    )
+    assert selected_song.status_code == 200
+    assert selected_song.json()["total"] == 2
 
     export = client.get(f"/api/reports/{report_id}/export", params={"kind": "summary"})
     assert export.status_code == 200

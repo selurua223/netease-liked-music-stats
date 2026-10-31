@@ -50,9 +50,19 @@ def _markdown_report(summary: dict[str, Any]) -> str:
         "",
         "| 类型 | 代表歌曲 | 歌手 | 数值 |",
         "|---|---|---|---:|",
-        f"| 最长 | {extremes['longest'][0]['title']} | {' / '.join(extremes['longest'][0]['artists'])} | {extremes['longest'][0]['duration']} |",
-        f"| 最短 | {extremes['shortest'][0]['title']} | {' / '.join(extremes['shortest'][0]['artists'])} | {extremes['shortest'][0]['duration']} |",
     ]
+    if extremes["longest"]:
+        lines.append(
+            f"| 最长 | {extremes['longest'][0]['title']} | "
+            f"{' / '.join(extremes['longest'][0]['artists'])} | "
+            f"{extremes['longest'][0]['duration']} |"
+        )
+    if extremes["shortest"]:
+        lines.append(
+            f"| 最短 | {extremes['shortest'][0]['title']} | "
+            f"{' / '.join(extremes['shortest'][0]['artists'])} | "
+            f"{extremes['shortest'][0]['duration']} |"
+        )
     if hottest:
         lines.append(
             f"| 热度最高 | {hottest[0]['title']} | "
@@ -87,6 +97,7 @@ def write_report(
     playlist: dict[str, Any],
     track_ids: list[int],
     missing_ids: list[int],
+    raw_songs: list[dict[str, Any]] | None,
     metadata: dict[str, Any],
     *,
     include_raw_data: bool = True,
@@ -114,6 +125,7 @@ def write_report(
                     "playlist": playlist,
                     "trackIds": track_ids,
                     "missingIds": missing_ids,
+                    "songs": raw_songs or [],
                 },
                 ensure_ascii=False,
             ),

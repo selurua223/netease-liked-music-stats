@@ -12,6 +12,8 @@
     artistPage: 1,
     artistQuery: "",
     artistsPerPage: 15,
+    insightSongIds: [],
+    insightTitle: "",
     charts: {},
   };
 
@@ -123,8 +125,11 @@
       state.songQuery = "";
       state.artistPage = 1;
       state.artistQuery = "";
+      state.insightSongIds = [];
+      state.insightTitle = "";
       $("#songSearch").value = "";
       $("#artistSearch").value = "";
+      $("#songFilterInfo").hidden = true;
       $("#emptyState").hidden = true;
       $("#dashboardContent").hidden = false;
       renderDashboard();
@@ -179,11 +184,14 @@
 
     const integrity = summary.integrity;
     const pill = $("#integrityPill");
-    pill.textContent =
-      integrity?.status === "complete"
-        ? `完整性通过 · ${overview.fetchedSongCount}/${overview.fetchedSongCount}`
-        : `部分数据 · 缺失 ${integrity?.missingCount ?? overview.missingSongCount}`;
-    pill.classList.toggle("partial", integrity?.status !== "complete");
+    const statusText = {
+      complete: `完整性通过 · ${overview.fetchedSongCount}/${overview.fetchedSongCount}`,
+      warning: "完整性有警告 · 声明数量不一致",
+      partial: `部分数据 · 缺失 ${integrity?.missingCount ?? overview.missingSongCount}`,
+    };
+    pill.textContent = statusText[integrity?.status] || "完整性状态未知";
+    pill.classList.toggle("partial", integrity?.status === "partial");
+    pill.classList.toggle("warning", integrity?.status === "warning");
 
     const extremes = summary.extremes;
     const items = [
@@ -413,6 +421,9 @@
       order,
       duplicate_only: String(state.duplicateOnly),
     });
+    if (state.insightSongIds.length) {
+      params.set("song_ids", state.insightSongIds.join(","));
+    }
     try {
       const data = await api(`/api/reports/${state.reportId}/songs?${params}`);
       $("#songTable").innerHTML = data.items
@@ -430,6 +441,10 @@
       $("#pageLabel").textContent = `第 ${data.page} / ${data.pages} 页 · ${data.total} 首`;
       $("#prevPage").disabled = data.page <= 1;
       $("#nextPage").disabled = data.page >= data.pages;
+      $("#songFilterInfo").hidden = state.insightSongIds.length === 0;
+      $("#songFilterLabel").textContent = state.insightSongIds.length
+        ? `正在查看「${state.insightTitle}」相关歌曲 · ${data.total} 首`
+        : "";
     } catch (error) {
       toast(error.message);
     }
@@ -443,44 +458,69 @@
       $("#profileDescription").textContent = "请重新运行分析以生成 Music DNA。";
       return;
     }
-    const metrics = profile.metrics;
     const quality = profile.dataQuality;
+    const definitions = profile.metricDefinitions;
     $("#profileType").textContent = profile.primaryType;
     $("#profileDescription").textContent = profile.description;
     $("#profileTags").innerHTML = [profile.primaryType, ...profile.secondaryTags]
       .map((tag) => `<span>${escapeHtml(tag)}</span>`)
       .join("");
-    $("#profileConfidence").textContent = quality.confidence;
+    $("#profileConfidence").textContent = quality.conclusionReliability;
     $("#profileCoverage").textContent =
-      `热度覆盖率 ${(quality.popularityCoverage * 100).toFixed(0)}% · ` +
-      `时长覆盖率 ${(quality.durationCoverage * 100).toFixed(0)}%`;
+      `${quality.sampleSufficiency.level}样本 · ${quality.summary} · ` +
+      `字段完整度 ${(quality.fieldCompleteness * 100).toFixed(0)}%`;
     $("#metricArtistEntropy").textContent =
-      `${(metrics.artistNormalizedEntropy * 100).toFixed(1)} / 100`;
+      `${(definitions.artistDiversity.value * 100).toFixed(1)} / 100`;
     $("#metricTop10Share").textContent =
-      `${(metrics.top10ArtistCreditShare * 100).toFixed(1)}%`;
+      `${(definitions.top10Share.value * 100).toFixed(1)}%`;
     $("#metricLowPopularity").textContent =
-      `${(metrics.lowPopularityRatio * 100).toFixed(1)}%`;
+      `${(definitions.lowPopularityShare.value * 100).toFixed(1)}%`;
     $("#metricCollaboration").textContent =
-      `${(metrics.collaborationRatio * 100).toFixed(1)}%`;
+      `${(definitions.collaborationShare.value * 100).toFixed(1)}%`;
     $("#metricLongSongs").textContent =
-      `${(metrics.longSongRatio * 100).toFixed(1)}%`;
+      `${(definitions.longSongShare.value * 100).toFixed(1)}%`;
     $("#metricAlbumDiversity").textContent =
-      `${(metrics.albumDiversity * 100).toFixed(1)}%`;
+      `${(definitions.albumDiversity.value * 100).toFixed(1)} / 100`;
 
-    $("#profileInsights").innerHTML = profile.insights
-      .map(
-        (insight) => `
+    $("#profileInsights").innerHTML = profile.insights.length
+      ? profile.insights.map((insight) => {
+          const hasSongs = insight.songIds?.length > 0;
+          return `
           <article class="insight-card">
             <div class="insight-card-head">
               <strong>${escapeHtml(insight.title)}</strong>
-              <span class="confidence">证据完整度：${escapeHtml(insight.confidence)}</span>
+              <span class="confidence">可靠性：${escapeHtml(insight.reliability || insight.confidence)}</span>
             </div>
             <p>${escapeHtml(insight.description)}</p>
             <div class="insight-evidence">证据：${escapeHtml(insight.evidence)}</div>
-          </article>`,
-      )
-      .join("");
+            ${
+              hasSongs
+                ? `<button class="insight-link" data-insight-ids="${insight.songIds.join(",")}" data-insight-title="${escapeHtml(insight.title)}">查看相关歌曲 →</button>`
+                : ""
+            }
+          </article>`;
+        }).join("")
+      : `<article class="insight-card">
+          <strong>当前样本不足以生成可靠发现</strong>
+          <p>${escapeHtml(quality.sampleSufficiency.guidance)}</p>
+          <div class="insight-evidence">有效样本：${quality.sampleSufficiency.sampleSize} 首</div>
+        </article>`;
     $("#profileDisclaimer").textContent = profile.disclaimer;
+  }
+
+  function openMetricDefinition(key) {
+    const definition = state.summary?.profile?.metricDefinitions?.[key];
+    if (!definition) return;
+    $("#metricModalTitle").textContent = definition.label;
+    $("#metricFormula").textContent = definition.formula;
+    $("#metricValue").textContent = definition.displayValue;
+    $("#metricFractionsLabel").textContent = definition.fractionLabel;
+    $("#metricFractions").textContent =
+      `${definition.numerator} / ${definition.denominator}`;
+    $("#metricSample").textContent = `${definition.sampleSize} 条有效记录`;
+    $("#metricMissing").textContent = `${definition.missingCount} 条`;
+    $("#metricNote").textContent = definition.note;
+    $("#metricModal").hidden = false;
   }
 
   function renderProfileCharts() {
@@ -755,6 +795,39 @@
     $("#nextPage").addEventListener("click", () => {
       state.songPage += 1;
       loadSongs();
+    });
+    $("#clearInsightFilter").addEventListener("click", () => {
+      state.insightSongIds = [];
+      state.insightTitle = "";
+      state.songPage = 1;
+      loadSongs();
+    });
+    $$(".profile-metric").forEach((card) => {
+      const open = () => openMetricDefinition(card.dataset.profileMetric);
+      card.addEventListener("click", open);
+      card.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          open();
+        }
+      });
+    });
+    document.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-insight-ids]");
+      if (!button) return;
+      state.insightSongIds = button.dataset.insightIds
+        .split(",")
+        .map(Number)
+        .filter(Number.isFinite);
+      state.insightTitle = button.dataset.insightTitle;
+      state.songPage = 1;
+      switchPage("songs");
+    });
+    $("#metricModalClose").addEventListener("click", () => {
+      $("#metricModal").hidden = true;
+    });
+    $("#metricModal").addEventListener("click", (event) => {
+      if (event.target === $("#metricModal")) $("#metricModal").hidden = true;
     });
     $("#compareButton").addEventListener("click", compareReports);
     window.addEventListener("resize", debounce(() => {

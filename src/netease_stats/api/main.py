@@ -104,6 +104,7 @@ def create_app(
         page_size: Annotated[int, Query(ge=1, le=200)] = 30,
         search: str = "",
         artist: str = "",
+        song_ids: str = "",
         sort: Annotated[
             str, Query(pattern="^(title|artists|album|duration|popularity)$")
         ] = "title",
@@ -118,9 +119,16 @@ def create_app(
 
         query = search.strip().casefold()
         artist_query = artist.strip().casefold()
+        requested_ids: set[int] = set()
+        if song_ids.strip():
+            for raw_id in song_ids.split(","):
+                if raw_id.strip().isdigit():
+                    requested_ids.add(int(raw_id.strip()))
         duplicate_titles = {
             item["title"] for item in summary.get("duplicateTitles", [])
         }
+        if requested_ids:
+            rows = [row for row in rows if int(row["id"]) in requested_ids]
         if query:
             rows = [
                 row

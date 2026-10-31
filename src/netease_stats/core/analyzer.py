@@ -79,7 +79,11 @@ def analyze_playlist(
 
     _emit(progress, "statistics", "正在计算统计指标", len(rows), len(track_ids))
     summary = build_summary(playlist, rows, missing_ids, playlist_id)
-    summary["profile"] = build_profile(rows)
+    summary["profile"] = build_profile(
+        rows,
+        expected_song_count=len(track_ids),
+        missing_song_count=len(missing_ids),
+    )
     integrity = validate_coverage(playlist, track_ids, songs, missing_ids)
     summary["integrity"] = integrity.to_dict()
     summary["metadata"] = {
@@ -109,6 +113,7 @@ def analyze_playlist(
         playlist,
         track_ids,
         missing_ids,
+        ordered_songs,
         metadata,
         include_raw_data=include_raw_data,
         generate_csv=generate_csv,

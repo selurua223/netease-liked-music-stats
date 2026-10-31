@@ -1,3 +1,3 @@
 """Local-first analytics for public NetEase Cloud Music playlists."""
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"

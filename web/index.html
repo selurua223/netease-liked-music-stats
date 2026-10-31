@@ -217,6 +217,10 @@
                 <a id="exportMd" href="#" download>MD</a>
               </div>
             </div>
+            <div class="active-filter" id="songFilterInfo" hidden>
+              <span id="songFilterLabel"></span>
+              <button id="clearInsightFilter">清除筛选</button>
+            </div>
             <div class="table-wrap">
               <table>
                 <thead><tr><th>歌曲</th><th>歌手</th><th>专辑</th><th>时长</th><th>热度</th></tr></thead>
@@ -267,35 +271,35 @@
           </div>
 
           <div class="profile-metric-grid">
-            <article class="profile-metric">
-              <span>歌手多样性</span>
+            <article class="profile-metric" data-profile-metric="artistDiversity" tabindex="0" role="button">
+              <span>歌手多样性 <button class="metric-explain" type="button">公式</button></span>
               <strong id="metricArtistEntropy">—</strong>
               <small>归一化熵 · 越接近 100 越分散</small>
             </article>
-            <article class="profile-metric">
-              <span>TOP 10 歌手贡献</span>
+            <article class="profile-metric" data-profile-metric="top10Share" tabindex="0" role="button">
+              <span>TOP 10 歌手贡献 <button class="metric-explain" type="button">公式</button></span>
               <strong id="metricTop10Share">—</strong>
               <small>按歌手署名次数计算</small>
             </article>
-            <article class="profile-metric">
-              <span>低热度作品</span>
+            <article class="profile-metric" data-profile-metric="lowPopularityShare" tabindex="0" role="button">
+              <span>低热度作品 <button class="metric-explain" type="button">公式</button></span>
               <strong id="metricLowPopularity">—</strong>
               <small>热度低于 40 的有效歌曲占比</small>
             </article>
-            <article class="profile-metric">
-              <span>合作歌曲</span>
+            <article class="profile-metric" data-profile-metric="collaborationShare" tabindex="0" role="button">
+              <span>合作歌曲 <button class="metric-explain" type="button">公式</button></span>
               <strong id="metricCollaboration">—</strong>
               <small>至少两位署名歌手的歌曲占比</small>
             </article>
-            <article class="profile-metric">
-              <span>长篇作品</span>
+            <article class="profile-metric" data-profile-metric="longSongShare" tabindex="0" role="button">
+              <span>长篇作品 <button class="metric-explain" type="button">公式</button></span>
               <strong id="metricLongSongs">—</strong>
               <small>五分钟以上歌曲占比</small>
             </article>
-            <article class="profile-metric">
-              <span>专辑广度</span>
+            <article class="profile-metric" data-profile-metric="albumDiversity" tabindex="0" role="button">
+              <span>专辑多样性 <button class="metric-explain" type="button">公式</button></span>
               <strong id="metricAlbumDiversity">—</strong>
-              <small>不同专辑数 / 歌曲总数</small>
+              <small>按专辑 ID 去重 · 点击查看口径</small>
             </article>
           </div>
 
@@ -344,5 +348,20 @@
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="metric-modal" id="metricModal" hidden>
+      <div class="metric-dialog" role="dialog" aria-modal="true" aria-labelledby="metricModalTitle">
+        <button class="modal-close" id="metricModalClose" aria-label="关闭">×</button>
+        <span class="eyebrow">METRIC DEFINITION</span>
+        <h2 id="metricModalTitle">指标说明</h2>
+        <p class="metric-formula" id="metricFormula"></p>
+        <dl class="metric-detail-list">
+          <div><dt>实际数值</dt><dd id="metricValue"></dd></div>
+          <div><dt id="metricFractionsLabel">分子 / 分母</dt><dd id="metricFractions"></dd></div>
+          <div><dt>有效样本</dt><dd id="metricSample"></dd></div>
+          <div><dt>缺失数据</dt><dd id="metricMissing"></dd></div>
+        </dl>
+        <p id="metricNote"></p>
+      </div>
+    </div>
   </body>
 </html>

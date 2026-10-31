@@ -49,3 +49,21 @@ The returned value is not a raw play count. In the tested playlist it ranged fro
 ## Access and safety
 
 Use ordinary read-only HTTP requests with a browser-like User-Agent and the NetEase Music referer. Do not use account cookies or authentication credentials for a public playlist. Do not download audio, mutate playlists, or infer private listening information.
+
+## Report data contract
+
+Every completed analysis writes:
+
+- `summary.json`: normalized statistics, integrity result, and Music DNA profile.
+- `songs.json`: normalized rows used by Web pagination.
+- `metadata.json`: playlist ID, generation time, version, and completeness.
+- `raw_data.json`: original playlist response, ordered track IDs, missing IDs, and original song-detail objects when `include_raw_data` is enabled.
+- CSV and Markdown exports derived from the normalized rows.
+
+Integrity status values:
+
+- `complete`: declared count and unique ID processing agree, with no missing or unexpected songs.
+- `warning`: all exposed IDs were returned, but playlist count metadata does not agree.
+- `partial`: at least one requested song detail is missing, or unexpected songs were returned.
+
+The local API exposes paginated song queries and accepts an optional comma-separated `song_ids` filter so a Music DNA finding can link back to its evidence songs.

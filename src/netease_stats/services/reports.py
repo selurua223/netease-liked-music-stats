@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from netease_stats.core.profile import build_profile
+from netease_stats.core.profile import PROFILE_VERSION, build_profile
 
 
 REPORT_ID_PATTERN = re.compile(r"^[0-9a-f]{12}$")
@@ -58,11 +58,17 @@ class ReportRepository:
         if not path.is_file():
             raise ReportNotFoundError("Summary not found")
         summary = json.loads(path.read_text(encoding="utf-8"))
-        if "profile" not in summary:
+        if summary.get("profile", {}).get("version") != PROFILE_VERSION:
             songs_path = path.with_name("songs.json")
             if songs_path.is_file():
+                overview = summary.get("overview", {})
                 summary["profile"] = build_profile(
-                    json.loads(songs_path.read_text(encoding="utf-8"))
+                    json.loads(songs_path.read_text(encoding="utf-8")),
+                    expected_song_count=(
+                        int(overview.get("fetchedSongCount") or 0)
+                        + int(overview.get("missingSongCount") or 0)
+                    ),
+                    missing_song_count=int(overview.get("missingSongCount") or 0),
                 )
         return summary
 

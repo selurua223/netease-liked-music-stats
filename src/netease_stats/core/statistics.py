@@ -59,9 +59,6 @@ def build_summary(
             popularity_values.append(row["popularity"])
             popularity_buckets[_popularity_bucket(row["popularity"])] += 1
 
-    if not durations:
-        raise ValueError("No positive song durations were available")
-
     duplicate_groups = [
         {"title": title, "count": len(group), "songs": group}
         for title, group in title_groups.items()
@@ -69,10 +66,13 @@ def build_summary(
     ]
     duplicate_groups.sort(key=lambda item: (-item["count"], item["title"].casefold()))
 
-    max_duration = max(durations)
-    min_duration = min(durations)
-    longest = [row for row in rows if row["durationMs"] == max_duration]
-    shortest = [row for row in rows if row["durationMs"] == min_duration]
+    longest: list[dict[str, Any]] = []
+    shortest: list[dict[str, Any]] = []
+    if durations:
+        max_duration = max(durations)
+        min_duration = min(durations)
+        longest = [row for row in rows if row["durationMs"] == max_duration]
+        shortest = [row for row in rows if row["durationMs"] == min_duration]
     hottest: list[dict[str, Any]] = []
     coldest: list[dict[str, Any]] = []
     if popularity_values:
@@ -90,7 +90,7 @@ def build_summary(
     top_artist_song_ids = {
         row["id"] for row in rows if top_names.intersection(row["artists"])
     }
-    average_duration = round(statistics.mean(durations))
+    average_duration = round(statistics.mean(durations)) if durations else None
     total_duration = sum(durations)
     average_popularity = (
         round(statistics.mean(popularity_values), 2)
@@ -110,9 +110,13 @@ def build_summary(
             "uniqueArtists": len(artist_counts),
             "artistCredits": sum(artist_counts.values()),
             "averageDurationMs": average_duration,
-            "averageDuration": format_duration(average_duration),
+            "averageDuration": (
+                format_duration(average_duration)
+                if average_duration is not None
+                else "—"
+            ),
             "totalDurationMs": total_duration,
-            "totalDuration": format_duration(total_duration),
+            "totalDuration": format_duration(total_duration) if durations else "—",
             "duplicateTitleGroups": len(duplicate_groups),
             "songsInDuplicateTitleGroups": sum(
                 item["count"] for item in duplicate_groups

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import unicodedata
 from typing import Any
 
@@ -13,8 +14,8 @@ def artist_names(song: dict[str, Any]) -> list[str]:
     for artist in artists:
         if not isinstance(artist, dict):
             continue
-        name = str(artist.get("name") or "").strip() or "(未知歌手)"
-        if name not in seen:
+        name = str(artist.get("name") or "").strip()
+        if name and name not in seen:
             seen.add(name)
             result.append(name)
     return result or ["(未知歌手)"]
@@ -25,12 +26,17 @@ def duration_ms(song: dict[str, Any]) -> int:
 
 
 def popularity(song: dict[str, Any]) -> float | None:
-    value = song.get("popularity")
-    if value is None:
-        value = song.get("score")
-    if value is None:
-        value = song.get("pop")
-    return None if value is None else float(value)
+    for key in ("popularity", "score", "pop"):
+        value = song.get(key)
+        if value is None or isinstance(value, bool):
+            continue
+        try:
+            numeric = float(value)
+        except (TypeError, ValueError):
+            continue
+        if math.isfinite(numeric) and 0 <= numeric <= 100:
+            return numeric
+    return None
 
 
 def normalize_title(title: Any) -> str:
@@ -51,6 +57,13 @@ def album_name(song: dict[str, Any]) -> str:
     return str(album.get("name") or "").strip() if isinstance(album, dict) else ""
 
 
+def album_id(song: dict[str, Any]) -> str:
+    album = song.get("album") or song.get("al") or {}
+    if not isinstance(album, dict) or album.get("id") is None:
+        return ""
+    return str(album["id"]).strip()
+
+
 def song_row(song: dict[str, Any]) -> dict[str, Any]:
     duration = duration_ms(song)
     heat = popularity(song)
@@ -59,6 +72,7 @@ def song_row(song: dict[str, Any]) -> dict[str, Any]:
         "title": normalize_title(song.get("name")),
         "artists": artist_names(song),
         "album": album_name(song),
+        "albumId": album_id(song),
         "durationMs": duration,
         "duration": format_duration(duration),
         "popularity": heat,

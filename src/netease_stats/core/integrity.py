@@ -13,6 +13,7 @@ class IntegrityResult:
     requested_count: int
     returned_count: int
     missing_count: int
+    unexpected_count: int
     warnings: list[str]
 
     def to_dict(self) -> dict[str, Any]:
@@ -38,12 +39,18 @@ def validate_coverage(
     if unexpected:
         warnings.append(f"Provider returned {len(unexpected)} unrequested song IDs")
 
-    complete = not missing_ids and not unexpected
+    if missing_ids or unexpected:
+        status = "partial"
+    elif warnings:
+        status = "warning"
+    else:
+        status = "complete"
     return IntegrityResult(
-        status="complete" if complete else "partial",
+        status=status,
         declared_count=declared,
         requested_count=len(track_ids),
         returned_count=len(returned_songs),
         missing_count=len(missing_ids),
+        unexpected_count=len(unexpected),
         warnings=warnings,
     )
