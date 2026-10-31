@@ -12,6 +12,7 @@ from netease_stats import __version__
 from .collector import fetch_playlist, fetch_songs, unique_track_ids
 from .integrity import validate_coverage
 from .normalizer import song_row
+from .profile import build_profile
 from .reporting import write_report
 from .statistics import build_summary
 
@@ -78,6 +79,7 @@ def analyze_playlist(
 
     _emit(progress, "statistics", "正在计算统计指标", len(rows), len(track_ids))
     summary = build_summary(playlist, rows, missing_ids, playlist_id)
+    summary["profile"] = build_profile(rows)
     integrity = validate_coverage(playlist, track_ids, songs, missing_ids)
     summary["integrity"] = integrity.to_dict()
     summary["metadata"] = {

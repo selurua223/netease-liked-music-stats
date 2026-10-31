@@ -105,6 +105,7 @@ def test_api_analysis_and_report_routes(tmp_path: Path):
     summary = client.get(f"/api/reports/{report_id}")
     assert summary.status_code == 200
     assert summary.json()["overview"]["fetchedSongCount"] == 3
+    assert summary.json()["profile"]["version"] == "1.0"
 
     songs = client.get(
         f"/api/reports/{report_id}/songs",

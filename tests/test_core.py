@@ -4,6 +4,7 @@ import json
 
 from netease_stats.core.integrity import validate_coverage
 from netease_stats.core.normalizer import song_row
+from netease_stats.core.profile import build_profile
 from netease_stats.core.statistics import build_summary
 
 
@@ -74,6 +75,26 @@ def test_integrity_marks_partial_when_song_is_missing():
     assert result.declared_count == 3
     assert result.returned_count == 2
     assert result.missing_count == 1
+
+
+def test_music_profile_uses_evidence_backed_metrics():
+    rows = [
+        song_row(raw_song(1, "Same", ["A", "B"], 100000, 20)),
+        song_row(raw_song(2, "Same", ["A"], 320000, 90)),
+        song_row(raw_song(3, "Other", ["C", "D"], 360000, 35)),
+        song_row(raw_song(4, "Long", ["E"], 400000, 75)),
+        song_row(raw_song(5, "Wide", ["F", "G"], 250000, 55)),
+    ]
+    profile = build_profile(rows)
+
+    assert profile["version"] == "1.0"
+    assert 0 < profile["metrics"]["artistNormalizedEntropy"] < 1
+    assert 0 < profile["metrics"]["artistHhi"] < 1
+    assert profile["metrics"]["lowPopularityRatio"] == 0.4
+    assert profile["metrics"]["collaborationRatio"] == 0.6
+    assert profile["radar"]
+    assert all("evidence" in insight for insight in profile["insights"])
+    assert profile["dataQuality"]["confidence"] in {"高", "中", "低"}
 
 
 def test_report_repository_compare(tmp_path):

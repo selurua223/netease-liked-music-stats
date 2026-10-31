@@ -7,6 +7,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+from netease_stats.core.profile import build_profile
+
 
 REPORT_ID_PATTERN = re.compile(r"^[0-9a-f]{12}$")
 EXPORT_FILES = {
@@ -55,7 +57,14 @@ class ReportRepository:
         path = self.report_dir(report_id) / "summary.json"
         if not path.is_file():
             raise ReportNotFoundError("Summary not found")
-        return json.loads(path.read_text(encoding="utf-8"))
+        summary = json.loads(path.read_text(encoding="utf-8"))
+        if "profile" not in summary:
+            songs_path = path.with_name("songs.json")
+            if songs_path.is_file():
+                summary["profile"] = build_profile(
+                    json.loads(songs_path.read_text(encoding="utf-8"))
+                )
+        return summary
 
     def load_songs(self, report_id: str) -> list[dict[str, Any]]:
         path = self.report_dir(report_id) / "songs.json"

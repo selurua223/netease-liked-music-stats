@@ -9,6 +9,9 @@
     songQuery: "",
     songSort: "title:asc",
     duplicateOnly: false,
+    artistPage: 1,
+    artistQuery: "",
+    artistsPerPage: 15,
     charts: {},
   };
 
@@ -66,6 +69,7 @@
     window.location.hash = page === "dashboard" ? "" : page;
     if (page === "artists") renderArtistPageChart();
     if (page === "songs") loadSongs();
+    if (page === "portrait") renderProfileCharts();
   }
 
   async function loadHealth() {
@@ -116,6 +120,11 @@
       state.reportId = reportId;
       state.summary = await api(`/api/reports/${reportId}`);
       state.songPage = 1;
+      state.songQuery = "";
+      state.artistPage = 1;
+      state.artistQuery = "";
+      $("#songSearch").value = "";
+      $("#artistSearch").value = "";
       $("#emptyState").hidden = true;
       $("#dashboardContent").hidden = false;
       renderDashboard();
@@ -157,8 +166,9 @@
     $("#playlistTitle").textContent = playlist.name || "未命名歌单";
     $("#playlistMeta").textContent =
       `${creatorName(playlist.creator)} · 生成于 ${formatDate(summary.metadata?.generatedAt)}`;
-    $("#heroSubtitle").textContent =
-      `正在查看「${playlist.name || "公开歌单"}」的本地分析报告。`;
+    $("#heroSubtitle").textContent = summary.profile?.description
+      ? `「${playlist.name || "公开歌单"}」：${summary.profile.description}`
+      : `正在查看「${playlist.name || "公开歌单"}」的本地分析报告。`;
     $("#metricSongs").textContent = overview.fetchedSongCount.toLocaleString("zh-CN");
     $("#metricSongsDetail").textContent = `缺失 ${overview.missingSongCount} 首`;
     $("#metricArtists").textContent = overview.uniqueArtists.toLocaleString("zh-CN");
@@ -360,28 +370,36 @@
 
   function renderArtists() {
     if (!state.summary) return;
-    renderArtistRows($("#artistSearch").value);
+    renderArtistRows(state.artistQuery);
   }
 
   function renderArtistRows(query = "") {
     if (!state.summary) return;
     const normalized = query.trim().toLocaleLowerCase();
     const totalSongs = state.summary.overview.fetchedSongCount || 1;
-    const rows = state.summary.artistCounts.filter((item) =>
-      item.artist.toLocaleLowerCase().includes(normalized),
-    );
+    const rows = state.summary.artistCounts
+      .map((item, index) => ({ ...item, rank: index + 1 }))
+      .filter((item) => item.artist.toLocaleLowerCase().includes(normalized));
+    const pages = Math.max(1, Math.ceil(rows.length / state.artistsPerPage));
+    state.artistPage = Math.min(state.artistPage, pages);
+    const start = (state.artistPage - 1) * state.artistsPerPage;
+    const visible = rows.slice(start, start + state.artistsPerPage);
     $("#artistResultCount").textContent = `${rows.length} 位歌手`;
-    $("#artistTable").innerHTML = rows
+    $("#artistTable").innerHTML = visible
       .map(
-        (item, index) => `
+        (item) => `
           <tr>
-            <td class="cell-muted">${index + 1}</td>
+            <td class="cell-muted">${item.rank}</td>
             <td class="cell-title">${escapeHtml(item.artist)}</td>
             <td>${item.count}</td>
             <td><span class="badge">${((item.count / totalSongs) * 100).toFixed(1)}%</span></td>
           </tr>`,
       )
       .join("");
+    $("#artistPageLabel").textContent =
+      `第 ${state.artistPage} / ${pages} 页 · 每页 ${state.artistsPerPage} 位`;
+    $("#artistPrevPage").disabled = state.artistPage <= 1;
+    $("#artistNextPage").disabled = state.artistPage >= pages;
   }
 
   async function loadSongs() {
@@ -419,28 +437,143 @@
 
   function renderPortrait() {
     if (!state.summary) return;
-    const overview = state.summary.overview;
-    const concentration = overview.topArtistCoverage || 0;
-    $("#portraitConcentration").textContent = `${concentration.toFixed(1)}%`;
-    $("#concentrationBar").style.width = `${Math.min(100, concentration)}%`;
-    $("#portraitConcentrationText").textContent =
-      concentration >= 60
-        ? "收藏高度集中在少数歌手。"
-        : concentration >= 35
-          ? "收藏既有关注重点，也保留了较多不同歌手。"
-          : "歌手分布较分散，收藏呈现明显的长尾特征。";
-    $("#portraitPopularity").textContent =
-      overview.averagePopularity == null ? "—" : Number(overview.averagePopularity).toFixed(1);
-    $("#portraitDuration").textContent = overview.averageDuration;
-    $("#portraitDuplicates").textContent = `${overview.duplicateTitleGroups} 组`;
+    const profile = state.summary.profile;
+    if (!profile) {
+      $("#profileType").textContent = "暂无画像数据";
+      $("#profileDescription").textContent = "请重新运行分析以生成 Music DNA。";
+      return;
+    }
+    const metrics = profile.metrics;
+    const quality = profile.dataQuality;
+    $("#profileType").textContent = profile.primaryType;
+    $("#profileDescription").textContent = profile.description;
+    $("#profileTags").innerHTML = [profile.primaryType, ...profile.secondaryTags]
+      .map((tag) => `<span>${escapeHtml(tag)}</span>`)
+      .join("");
+    $("#profileConfidence").textContent = quality.confidence;
+    $("#profileCoverage").textContent =
+      `热度覆盖率 ${(quality.popularityCoverage * 100).toFixed(0)}% · ` +
+      `时长覆盖率 ${(quality.durationCoverage * 100).toFixed(0)}%`;
+    $("#metricArtistEntropy").textContent =
+      `${(metrics.artistNormalizedEntropy * 100).toFixed(1)} / 100`;
+    $("#metricTop10Share").textContent =
+      `${(metrics.top10ArtistCreditShare * 100).toFixed(1)}%`;
+    $("#metricLowPopularity").textContent =
+      `${(metrics.lowPopularityRatio * 100).toFixed(1)}%`;
+    $("#metricCollaboration").textContent =
+      `${(metrics.collaborationRatio * 100).toFixed(1)}%`;
+    $("#metricLongSongs").textContent =
+      `${(metrics.longSongRatio * 100).toFixed(1)}%`;
+    $("#metricAlbumDiversity").textContent =
+      `${(metrics.albumDiversity * 100).toFixed(1)}%`;
 
-    const topArtists = state.summary.artistCounts.slice(0, 5).map((item) => item.artist);
-    $("#portraitStory").innerHTML = `
-      <p>这份收藏共有 <strong>${overview.fetchedSongCount.toLocaleString("zh-CN")}</strong> 首歌曲，
-      覆盖 <strong>${overview.uniqueArtists.toLocaleString("zh-CN")}</strong> 位歌手。
-      排名前五的歌手是 ${topArtists.map(escapeHtml).join("、")}。</p>
-      <p>TOP 10 歌手覆盖了 <strong>${concentration.toFixed(1)}%</strong> 的歌曲。
-      平均值只根据实际存在的字段计算；热度不是播放量，曲风也不会被凭空推测。</p>`;
+    $("#profileInsights").innerHTML = profile.insights
+      .map(
+        (insight) => `
+          <article class="insight-card">
+            <div class="insight-card-head">
+              <strong>${escapeHtml(insight.title)}</strong>
+              <span class="confidence">证据完整度：${escapeHtml(insight.confidence)}</span>
+            </div>
+            <p>${escapeHtml(insight.description)}</p>
+            <div class="insight-evidence">证据：${escapeHtml(insight.evidence)}</div>
+          </article>`,
+      )
+      .join("");
+    $("#profileDisclaimer").textContent = profile.disclaimer;
+  }
+
+  function renderProfileCharts() {
+    if (!state.summary?.profile) return;
+    const profile = state.summary.profile;
+    const radar = initChart("profileRadarChart");
+    if (radar) {
+      radar.setOption({
+        animationDuration: 700,
+        textStyle: chartText(),
+        tooltip: {
+          backgroundColor: "#171b27",
+          borderColor: "rgba(255,255,255,.12)",
+          textStyle: { color: "#f4f5f8" },
+        },
+        radar: {
+          radius: "64%",
+          splitNumber: 4,
+          indicator: profile.radar.map((item) => ({ name: item.label, max: 100 })),
+          axisName: { color: "#c8cdd8", fontSize: 11 },
+          splitArea: {
+            areaStyle: {
+              color: ["rgba(155,123,255,.03)", "rgba(255,255,255,.015)"],
+            },
+          },
+          axisLine: { lineStyle: { color: "rgba(255,255,255,.1)" } },
+          splitLine: { lineStyle: { color: "rgba(255,255,255,.1)" } },
+        },
+        series: [
+          {
+            type: "radar",
+            data: [
+              {
+                value: profile.radar.map((item) => item.value),
+                name: "收藏偏好",
+                symbol: "circle",
+                symbolSize: 5,
+                lineStyle: { color: "#a98bff", width: 2 },
+                itemStyle: { color: "#ff5268" },
+                areaStyle: { color: "rgba(155,123,255,.22)" },
+              },
+            ],
+          },
+        ],
+      });
+    }
+
+    const distribution = state.summary.distributions.popularity;
+    const cover = state.summary.overview.popularityCoverage;
+    const total = state.summary.overview.fetchedSongCount;
+    const low = (distribution[0]?.count || 0) + (distribution[1]?.count || 0);
+    const middle = (distribution[2]?.count || 0) + (distribution[3]?.count || 0);
+    const high = distribution[4]?.count || 0;
+    const unknown = Math.max(0, total - cover);
+    const structure = initChart("profileStructureChart");
+    if (structure) {
+      structure.setOption({
+        animationDuration: 700,
+        textStyle: chartText(),
+        tooltip: {
+          trigger: "item",
+          backgroundColor: "#171b27",
+          borderColor: "rgba(255,255,255,.12)",
+          textStyle: { color: "#f4f5f8" },
+        },
+        legend: {
+          bottom: 0,
+          textStyle: { color: "#9ba1af", fontSize: 10 },
+          itemWidth: 9,
+          itemHeight: 9,
+        },
+        series: [
+          {
+            type: "pie",
+            radius: ["46%", "70%"],
+            center: ["50%", "45%"],
+            avoidLabelOverlap: true,
+            itemStyle: {
+              borderColor: "#12151f",
+              borderWidth: 4,
+              borderRadius: 7,
+            },
+            label: { color: "#a9afbc", fontSize: 10, formatter: "{b}\n{d}%" },
+            data: [
+              { value: low, name: "低热度", itemStyle: { color: "#5b78ff" } },
+              { value: middle, name: "中热度", itemStyle: { color: "#a57dff" } },
+              { value: high, name: "高热度", itemStyle: { color: "#ff5268" } },
+              { value: unknown, name: "热度未知", itemStyle: { color: "#3a3f50" } },
+            ].filter((item) => item.value > 0),
+          },
+        ],
+      });
+    }
   }
 
   function renderDownloads() {
@@ -587,7 +720,19 @@
     });
     $("#refreshReports").addEventListener("click", () => loadReports().catch((error) => toast(error.message)));
     $("#reportSelect").addEventListener("change", (event) => loadReport(event.target.value));
-    $("#artistSearch").addEventListener("input", (event) => renderArtistRows(event.target.value));
+    $("#artistSearch").addEventListener("input", (event) => {
+      state.artistQuery = event.target.value;
+      state.artistPage = 1;
+      renderArtistRows(state.artistQuery);
+    });
+    $("#artistPrevPage").addEventListener("click", () => {
+      state.artistPage = Math.max(1, state.artistPage - 1);
+      renderArtistRows(state.artistQuery);
+    });
+    $("#artistNextPage").addEventListener("click", () => {
+      state.artistPage += 1;
+      renderArtistRows(state.artistQuery);
+    });
     $("#songSearch").addEventListener("input", debounce((event) => {
       state.songQuery = event.target.value;
       state.songPage = 1;

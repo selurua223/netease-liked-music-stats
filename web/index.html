@@ -187,6 +187,11 @@
                 <tbody id="artistTable"></tbody>
               </table>
             </div>
+            <div class="pagination artist-pagination">
+              <button id="artistPrevPage">← 上一页</button>
+              <span id="artistPageLabel">第 1 / 1 页</span>
+              <button id="artistNextPage">下一页 →</button>
+            </div>
           </div>
         </section>
 
@@ -231,32 +236,76 @@
             <div><span class="eyebrow">MUSIC PORTRAIT</span><h2>音乐画像</h2><p>只使用已有且可解释的字段，不推测不存在的曲风信息。</p></div>
             <span class="section-number">04</span>
           </div>
-          <div class="portrait-grid">
-            <article class="portrait-card large">
-              <span>TOP 10 歌手覆盖</span>
-              <strong id="portraitConcentration">—</strong>
-              <div class="progress"><i id="concentrationBar"></i></div>
-              <p id="portraitConcentrationText"></p>
+          <article class="music-dna" id="musicDna">
+            <div class="dna-copy">
+              <span class="eyebrow">MUSIC DNA · COLLECTION PROFILE</span>
+              <h3 id="profileType">正在生成收藏画像</h3>
+              <p id="profileDescription">画像只描述当前公开歌单的收藏结构。</p>
+              <div class="dna-tags" id="profileTags"></div>
+            </div>
+            <div class="dna-quality">
+              <span>数据完整度</span>
+              <strong id="profileConfidence">—</strong>
+              <small id="profileCoverage">热度覆盖率 — · 时长覆盖率 —</small>
+            </div>
+          </article>
+
+          <div class="portrait-layout">
+            <article class="panel chart-panel">
+              <div class="panel-heading">
+                <div><span>PREFERENCE DIMENSIONS</span><h3>收藏偏好雷达</h3></div>
+                <small>0–100</small>
+              </div>
+              <div class="chart portrait-chart" id="profileRadarChart"></div>
             </article>
-            <article class="portrait-card">
-              <span>平均热度</span>
-              <strong id="portraitPopularity">—</strong>
-              <p>平台公开分值，不代表播放次数。</p>
-            </article>
-            <article class="portrait-card">
-              <span>平均时长</span>
-              <strong id="portraitDuration">—</strong>
-              <p>由有效时长字段计算。</p>
-            </article>
-            <article class="portrait-card">
-              <span>同名歌曲</span>
-              <strong id="portraitDuplicates">—</strong>
-              <p>标题精确匹配，保留专辑差异。</p>
+            <article class="panel chart-panel">
+              <div class="panel-heading">
+                <div><span>COLLECTION STRUCTURE</span><h3>热度结构</h3></div>
+              </div>
+              <div class="chart portrait-chart" id="profileStructureChart"></div>
             </article>
           </div>
-          <div class="panel portrait-story">
-            <div class="panel-heading"><div><span>DATA STORY</span><h3>这份收藏说明了什么？</h3></div></div>
-            <div id="portraitStory"></div>
+
+          <div class="profile-metric-grid">
+            <article class="profile-metric">
+              <span>歌手多样性</span>
+              <strong id="metricArtistEntropy">—</strong>
+              <small>归一化熵 · 越接近 100 越分散</small>
+            </article>
+            <article class="profile-metric">
+              <span>TOP 10 歌手贡献</span>
+              <strong id="metricTop10Share">—</strong>
+              <small>按歌手署名次数计算</small>
+            </article>
+            <article class="profile-metric">
+              <span>低热度作品</span>
+              <strong id="metricLowPopularity">—</strong>
+              <small>热度低于 40 的有效歌曲占比</small>
+            </article>
+            <article class="profile-metric">
+              <span>合作歌曲</span>
+              <strong id="metricCollaboration">—</strong>
+              <small>至少两位署名歌手的歌曲占比</small>
+            </article>
+            <article class="profile-metric">
+              <span>长篇作品</span>
+              <strong id="metricLongSongs">—</strong>
+              <small>五分钟以上歌曲占比</small>
+            </article>
+            <article class="profile-metric">
+              <span>专辑广度</span>
+              <strong id="metricAlbumDiversity">—</strong>
+              <small>不同专辑数 / 歌曲总数</small>
+            </article>
+          </div>
+
+          <div class="panel discoveries-panel">
+            <div class="panel-heading">
+              <div><span>HIDDEN PATTERNS</span><h3>从数据中发现的收藏特征</h3></div>
+              <small>每条发现均显示证据</small>
+            </div>
+            <div class="insight-grid" id="profileInsights"></div>
+            <p class="profile-disclaimer" id="profileDisclaimer"></p>
           </div>
         </section>
 
