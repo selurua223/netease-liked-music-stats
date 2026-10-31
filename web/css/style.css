@@ -285,9 +285,14 @@ input:focus {
 
 .primary-button,
 .analyze-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-color: transparent;
   background: linear-gradient(135deg, var(--red), #de2944);
   box-shadow: 0 10px 26px rgba(255, 66, 90, 0.2);
+  color: white;
+  text-decoration: none;
 }
 
 .page {
@@ -450,6 +455,14 @@ h1 em {
   accent-color: var(--violet);
 }
 
+.analysis-options {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  justify-content: center;
+  min-height: 47px;
+}
+
 .analyze-button {
   display: flex;
   gap: 18px;
@@ -556,6 +569,20 @@ h1 em {
   border-color: rgba(255, 198, 92, 0.3);
   background: rgba(255, 198, 92, 0.08);
   color: var(--gold);
+}
+
+.heading-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.download-all {
+  padding: 9px 13px;
+  border-radius: 11px;
+  font-size: 11px;
 }
 
 .metric-grid {
@@ -1464,6 +1491,10 @@ tbody tr:hover {
 
   .analyze-form {
     grid-template-columns: 1fr;
+  }
+
+  .analysis-options {
+    align-items: flex-start;
   }
 
   .metric-grid,

@@ -10,6 +10,7 @@
 - 热度最高、最低歌曲及并列项
 - 全部歌曲明细
 - 可核验的 CSV 与 Markdown 报告
+- 一键下载包含全部 CSV、JSON、Markdown 和原始数据的 ZIP 文件
 - 歌手、时长和热度可视化
 - 每页 15 位的歌手排行，避免长列表拖慢页面
 - 基于统计规则和证据的 Music DNA 音乐画像
@@ -58,6 +59,8 @@ http://127.0.0.1:8765
 ```
 
 输入公开歌单链接后，页面会显示真实的采集进度、完整性状态和统计结果。所有数据都保存在本机 `outputs/web/`。
+
+默认勾选“完成后自动下载全部文件”。分析结束后浏览器会下载一个 ZIP，包含歌曲明细、歌手统计、同名歌曲、时长与热度极值、摘要、元数据和原始数据。
 
 如果不希望自动打开浏览器：
 
@@ -144,6 +147,7 @@ JSON / CSV / Markdown 本地报告
 | `GET` | `/api/reports/{id}` | 获取统计摘要 |
 | `GET` | `/api/reports/{id}/songs` | 搜索、筛选和分页歌曲 |
 | `GET` | `/api/reports/{id}/export` | 下载 CSV、JSON 或 Markdown |
+| `GET` | `/api/reports/{id}/download-all` | 一键下载全部统计文件 ZIP |
 | `GET` | `/api/reports/{id}/compare/{other_id}` | 比较两次报告 |
 
 交互式 API 文档位于 `http://127.0.0.1:8765/api/docs`。

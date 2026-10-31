@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.4.1
+
+- Added one-click ZIP export for every report artifact.
+- Added optional automatic ZIP download after analysis completes.
+- Added a download-all API endpoint and archive integration tests.
+
 ## v0.4.0
 
 ### Data trust

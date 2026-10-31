@@ -92,10 +92,16 @@
                 placeholder="https://music.163.com/#/playlist?id=…"
               >
             </div>
-            <label class="check-row">
-              <input id="includeRawData" type="checkbox" checked>
-              <span>保留原始数据</span>
-            </label>
+            <div class="analysis-options">
+              <label class="check-row">
+                <input id="includeRawData" type="checkbox" checked>
+                <span>保留原始数据</span>
+              </label>
+              <label class="check-row">
+                <input id="autoDownload" type="checkbox" checked>
+                <span>完成后自动下载全部文件</span>
+              </label>
+            </div>
             <button class="analyze-button" type="submit"><span>开始分析</span><b>→</b></button>
           </form>
 
@@ -114,7 +120,10 @@
                 <h2 id="playlistTitle">音乐总览</h2>
                 <p id="playlistMeta"></p>
               </div>
-              <span class="status-pill" id="integrityPill">完整性校验</span>
+              <div class="heading-actions">
+                <span class="status-pill" id="integrityPill">完整性校验</span>
+                <a class="primary-button download-all" id="downloadBundle" href="#" download>↓ 一键下载全部</a>
+              </div>
             </div>
 
             <div class="metric-grid">
@@ -212,6 +221,7 @@
               </select>
               <label class="check-row"><input id="duplicatesOnly" type="checkbox"><span>只看同名</span></label>
               <div class="export-group">
+                <a id="exportZip" href="#" download>全部 ZIP</a>
                 <a id="exportCsv" href="#" download>CSV</a>
                 <a id="exportJson" href="#" download>JSON</a>
                 <a id="exportMd" href="#" download>MD</a>

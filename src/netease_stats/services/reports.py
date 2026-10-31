@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import re
+import zipfile
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 
@@ -94,6 +96,59 @@ class ReportRepository:
             ".csv": "text/csv; charset=utf-8",
         }
         return path, media_types.get(path.suffix, "application/octet-stream")
+
+    def export_bundle(self, report_id: str) -> tuple[BytesIO, str]:
+        directory = self.report_dir(report_id)
+        metadata_path = directory / "metadata.json"
+        metadata: dict[str, Any] = {}
+        if metadata_path.is_file():
+            try:
+                metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            except json.JSONDecodeError:
+                metadata = {}
+
+        filenames = [
+            "report.md",
+            "summary.json",
+            "songs.csv",
+            "artist_counts.csv",
+            "duplicate_titles.csv",
+            "extrema.csv",
+            "metadata.json",
+            "songs.json",
+            "raw_data.json",
+        ]
+        buffer = BytesIO()
+        with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            for filename in filenames:
+                path = directory / filename
+                if path.is_file():
+                    archive.write(path, arcname=filename)
+            archive.writestr(
+                "README.txt",
+                "\n".join(
+                    [
+                        "NetEase Music Analytics 统计文件包",
+                        f"歌单：{metadata.get('playlistName', '未知')}",
+                        f"歌单 ID：{metadata.get('playlistId', '未知')}",
+                        f"生成时间：{metadata.get('generatedAt', '未知')}",
+                        f"完整性状态：{metadata.get('integrityStatus', '未知')}",
+                        "",
+                        "songs.csv：全部歌曲明细",
+                        "artist_counts.csv：全部歌手排名",
+                        "duplicate_titles.csv：同名歌曲清单",
+                        "extrema.csv：时长与热度极值",
+                        "summary.json：完整统计摘要",
+                        "raw_data.json：原始接口数据（如分析时启用）",
+                        "",
+                        "所有文件均由本地 NetEase Music Analytics 生成。",
+                    ]
+                ),
+                compress_type=zipfile.ZIP_DEFLATED,
+            )
+        buffer.seek(0)
+        playlist_id = metadata.get("playlistId", report_id)
+        return buffer, f"netease-music-report-{playlist_id}.zip"
 
     def compare(self, report_id: str, other_id: str) -> dict[str, Any]:
         current_summary = self.load_summary(report_id)

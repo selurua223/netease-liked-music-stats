@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "netease-liked-music-stats"
-version = "0.4.0"
+version = "0.4.1"
 description = "Local-first, auditable analytics for public NetEase Cloud Music playlists"
 readme = "README.md"
 requires-python = ">=3.10"

@@ -618,9 +618,21 @@
 
   function renderDownloads() {
     const id = encodeURIComponent(state.reportId);
+    const bundleUrl = `/api/reports/${id}/download-all`;
+    $("#downloadBundle").href = bundleUrl;
+    $("#exportZip").href = bundleUrl;
     $("#exportCsv").href = `/api/reports/${id}/export?kind=songs`;
     $("#exportJson").href = `/api/reports/${id}/export?kind=summary`;
     $("#exportMd").href = `/api/reports/${id}/export?kind=markdown`;
+  }
+
+  function triggerBundleDownload(reportId) {
+    const anchor = document.createElement("a");
+    anchor.href = `/api/reports/${encodeURIComponent(reportId)}/download-all`;
+    anchor.download = "";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
   }
 
   function fillCompareOptions() {
@@ -703,7 +715,10 @@
           status.total > 0 ? `${status.completed} / ${status.total} 首` : "准备数据";
         if (status.status === "completed") {
           overlay.hidden = true;
-          toast("分析完成，报告已保存到本机");
+          toast("分析完成，全部统计文件已准备好");
+          if ($("#autoDownload").checked) {
+            triggerBundleDownload(status.reportId);
+          }
           await loadReports(status.reportId);
           switchPage("dashboard");
           return;

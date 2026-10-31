@@ -175,6 +175,18 @@ def create_app(
             raise HTTPException(status_code=404, detail=str(error)) from error
         return FileResponse(path, media_type=media_type, filename=path.name)
 
+    @app.get("/api/reports/{report_id}/download-all")
+    def download_all(report_id: str) -> Response:
+        try:
+            content, filename = repository.export_bundle(report_id)
+        except ReportNotFoundError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+        return Response(
+            content=content.getvalue(),
+            media_type="application/zip",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
     @app.get("/api/reports/{report_id}/compare/{other_id}")
     def compare(report_id: str, other_id: str) -> dict[str, Any]:
         try:

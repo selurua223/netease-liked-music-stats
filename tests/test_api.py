@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import time
+import zipfile
+from io import BytesIO
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -127,6 +129,22 @@ def test_api_analysis_and_report_routes(tmp_path: Path):
     export = client.get(f"/api/reports/{report_id}/export", params={"kind": "summary"})
     assert export.status_code == 200
     assert "Demo Playlist" in export.text
+
+    bundle = client.get(f"/api/reports/{report_id}/download-all")
+    assert bundle.status_code == 200
+    assert bundle.headers["content-type"] == "application/zip"
+    with zipfile.ZipFile(BytesIO(bundle.content)) as archive:
+        names = set(archive.namelist())
+        assert {
+            "README.txt",
+            "report.md",
+            "summary.json",
+            "songs.csv",
+            "artist_counts.csv",
+            "duplicate_titles.csv",
+            "extrema.csv",
+            "raw_data.json",
+        }.issubset(names)
 
 
 def test_analyze_rejects_non_playlist_input(tmp_path: Path):
