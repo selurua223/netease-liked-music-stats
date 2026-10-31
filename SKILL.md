@@ -9,6 +9,10 @@ Use this skill when the user asks for statistics about a NetEase Cloud Music pla
 
 This skill is for public NetEase playlists. It does not access private account libraries, download audio, or change the playlist.
 
+## Companion local web app
+
+The repository also includes a local-only browser interface. When the user asks to use the dashboard rather than the CLI, run `python run.py`, keep the service bound to loopback, and open `http://127.0.0.1:8765`. The Web interface and the Skill both call the same `src/netease_stats/core/` implementation.
+
 ## Workflow
 
 1. Resolve the playlist ID unambiguously.

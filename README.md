@@ -1,6 +1,8 @@
-# NetEase Liked Music Stats
+# NetEase Music Analytics
 
-一个用于 Codex 的网易云音乐歌单分析技能。它会读取公开歌单中的全部曲目，生成：
+一个**本地运行、浏览器查看、以数据可信度为核心**的网易云音乐歌单分析工具。
+
+它同时保留 Codex Skill 和命令行能力，并提供完整的本地 Web 界面：
 
 - 每位歌手的歌曲数量
 - 同名歌曲分组
@@ -8,6 +10,10 @@
 - 热度最高、最低歌曲及并列项
 - 全部歌曲明细
 - 可核验的 CSV 与 Markdown 报告
+- 歌手、时长和热度可视化
+- 历史报告与两次分析结果比较
+
+![Web interface](docs/dashboard.png)
 
 ## 为什么需要这个技能
 
@@ -15,7 +21,30 @@
 
 本技能直接读取歌单的完整 `trackIds`，再按每批 200 首获取歌曲详情。这样既能快速处理数千首歌曲，也能检查返回数量和缺失项。
 
-## 安装
+## 快速开始
+
+### 本地 Web 应用
+
+需要 Python 3.10 或更高版本。
+
+```powershell
+pip install -r requirements.txt
+python run.py
+```
+
+程序默认只监听 `127.0.0.1:8765`，并自动打开：
+
+```text
+http://127.0.0.1:8765
+```
+
+输入公开歌单链接后，页面会显示真实的采集进度、完整性状态和统计结果。所有数据都保存在本机 `outputs/web/`。
+
+如果不希望自动打开浏览器：
+
+```powershell
+python run.py --no-browser
+```
 
 ### Codex
 
@@ -37,7 +66,7 @@ git clone https://github.com/selurua223/netease-liked-music-stats.git "$env:USER
 %USERPROFILE%\.codex\skills
 ```
 
-### 直接运行
+### 命令行
 
 需要 Python 3.10 或更高版本，仅使用标准库，无需安装第三方依赖。
 
@@ -66,6 +95,48 @@ python .\scripts\netease_liked_stats.py `
 | `duplicate_titles.csv` | 全部同名歌曲及其专辑信息 |
 | `extrema.csv` | 时长与热度的完整极值清单 |
 | `raw_data.json` | 用于核验的原始歌单与歌曲数据 |
+| `songs.json` | Web 界面使用的标准化歌曲数据 |
+| `metadata.json` | 分析时间、版本、完整性和来源信息 |
+
+## 技术架构
+
+```text
+Web 前端
+  ↓ HTTP / JSON
+FastAPI 本地服务
+  ↓
+AnalysisService / TaskService
+  ↓
+collector → normalizer → statistics → integrity
+  ↓
+JSON / CSV / Markdown 本地报告
+```
+
+核心统计代码位于 `src/netease_stats/core/`，Web 和 CLI 使用同一套实现，避免两套结果不一致。
+
+## 本地 API
+
+| 方法 | 路径 | 功能 |
+|---|---|---|
+| `GET` | `/api/health` | 服务状态 |
+| `POST` | `/api/analyze` | 创建分析任务 |
+| `GET` | `/api/tasks/{id}` | 查询真实任务进度 |
+| `GET` | `/api/reports` | 列出本地报告 |
+| `GET` | `/api/reports/{id}` | 获取统计摘要 |
+| `GET` | `/api/reports/{id}/songs` | 搜索、筛选和分页歌曲 |
+| `GET` | `/api/reports/{id}/export` | 下载 CSV、JSON 或 Markdown |
+| `GET` | `/api/reports/{id}/compare/{other_id}` | 比较两次报告 |
+
+交互式 API 文档位于 `http://127.0.0.1:8765/api/docs`。
+
+## 安全边界
+
+- 服务只允许绑定回环地址，默认不开放局域网。
+- 不使用网易云账号密码或 Cookie。
+- 不上传歌曲、报告或缓存到第三方服务器。
+- 报告 ID、导出类型和歌曲查询参数均经过白名单或格式校验。
+- 前端不会接受任意本地文件路径。
+- ECharts 固定版本随仓库分发，不依赖运行时 CDN。
 
 ## 统计口径
 

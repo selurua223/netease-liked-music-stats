@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>NetEase Music Analytics</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%23ff425a'/%3E%3Cpath d='M22 38V26M31 45V19M40 40V24M49 36V28' stroke='white' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script defer src="/static/vendor/echarts.min.js"></script>
+    <script defer src="/static/js/app.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a class="brand" href="#" aria-label="NetEase Music Analytics">
+          <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+          <span>
+            <strong>Music Analytics</strong>
+            <small>LOCAL DATA CENTER</small>
+          </span>
+        </a>
+
+        <nav class="main-nav" aria-label="主导航">
+          <button class="nav-item active" data-page="dashboard">
+            <span class="nav-icon">◫</span><span>音乐总览</span>
+          </button>
+          <button class="nav-item" data-page="artists">
+            <span class="nav-icon">◎</span><span>歌手分析</span>
+          </button>
+          <button class="nav-item" data-page="songs">
+            <span class="nav-icon">≡</span><span>歌曲探索</span>
+          </button>
+          <button class="nav-item" data-page="portrait">
+            <span class="nav-icon">◒</span><span>音乐画像</span>
+          </button>
+          <button class="nav-item" data-page="history">
+            <span class="nav-icon">↺</span><span>历史报告</span>
+          </button>
+        </nav>
+
+        <div class="privacy-card">
+          <span class="privacy-icon">⌂</span>
+          <div>
+            <strong>仅在本机运行</strong>
+            <p>不读取账号密码，不上传歌曲数据。</p>
+          </div>
+        </div>
+
+        <div class="sidebar-foot">
+          <span id="healthState">正在连接本地服务…</span>
+          <a href="/api/docs" target="_blank" rel="noreferrer">API Docs ↗</a>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div class="report-picker">
+            <label for="reportSelect">当前报告</label>
+            <select id="reportSelect" aria-label="选择报告">
+              <option value="">尚无报告</option>
+            </select>
+          </div>
+          <div class="topbar-actions">
+            <button class="ghost-button" id="refreshReports">刷新</button>
+            <button class="primary-button" id="openAnalyzer">＋ 新建分析</button>
+          </div>
+        </header>
+
+        <section class="page active" data-view="dashboard">
+          <div class="hero">
+            <div>
+              <span class="eyebrow">LOCAL MUSIC DATA CENTER</span>
+              <h1>把歌曲收藏，变成<br><em>可验证的音乐数据。</em></h1>
+              <p id="heroSubtitle">输入公开的网易云歌单链接，开始一份本地、私密、可复核的分析。</p>
+            </div>
+            <div class="hero-orbit" aria-hidden="true">
+              <span class="orbit orbit-one"></span>
+              <span class="orbit orbit-two"></span>
+              <span class="orbit-core"><i></i><i></i><i></i><i></i></span>
+            </div>
+          </div>
+
+          <form class="analyze-form" id="analyzeForm">
+            <div class="input-wrap">
+              <label for="playlistInput">公开网易云歌单链接或 ID</label>
+              <input
+                id="playlistInput"
+                name="playlist"
+                required
+                autocomplete="off"
+                placeholder="https://music.163.com/#/playlist?id=…"
+              >
+            </div>
+            <label class="check-row">
+              <input id="includeRawData" type="checkbox" checked>
+              <span>保留原始数据</span>
+            </label>
+            <button class="analyze-button" type="submit"><span>开始分析</span><b>→</b></button>
+          </form>
+
+          <div class="empty-state" id="emptyState">
+            <div class="empty-visual">
+              <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <h2>还没有分析报告</h2>
+            <p>粘贴一个公开歌单链接。工具会读取完整曲目，核对缺失项，再生成可浏览、可导出的报告。</p>
+          </div>
+
+          <div class="report-content" id="dashboardContent" hidden>
+            <div class="section-heading">
+              <div>
+                <span class="eyebrow">OVERVIEW</span>
+                <h2 id="playlistTitle">音乐总览</h2>
+                <p id="playlistMeta"></p>
+              </div>
+              <span class="status-pill" id="integrityPill">完整性校验</span>
+            </div>
+
+            <div class="metric-grid">
+              <article class="metric-card accent-red">
+                <span>收藏歌曲</span>
+                <strong id="metricSongs">—</strong>
+                <small id="metricSongsDetail">已核验曲目</small>
+              </article>
+              <article class="metric-card accent-violet">
+                <span>收藏歌手</span>
+                <strong id="metricArtists">—</strong>
+                <small id="metricArtistsDetail">歌手署名</small>
+              </article>
+              <article class="metric-card accent-cyan">
+                <span>累计时长</span>
+                <strong id="metricDuration">—</strong>
+                <small>基于有效歌曲时长</small>
+              </article>
+              <article class="metric-card accent-gold">
+                <span>平均热度</span>
+                <strong id="metricPopularity">—</strong>
+                <small>网易云平台分值</small>
+              </article>
+            </div>
+
+            <div class="chart-grid">
+              <article class="panel chart-panel wide">
+                <div class="panel-heading">
+                  <div><span>ARTIST TOP 10</span><h3>歌手分布</h3></div>
+                  <small>点击“歌手分析”查看完整排名</small>
+                </div>
+                <div class="chart" id="artistChart"></div>
+              </article>
+              <article class="panel chart-panel">
+                <div class="panel-heading"><div><span>DURATION</span><h3>时长分布</h3></div></div>
+                <div class="chart" id="durationChart"></div>
+              </article>
+              <article class="panel chart-panel">
+                <div class="panel-heading"><div><span>POPULARITY</span><h3>热度分布</h3></div></div>
+                <div class="chart" id="popularityChart"></div>
+              </article>
+            </div>
+
+            <div class="panel">
+              <div class="panel-heading">
+                <div><span>EXTREMES</span><h3>四个极值，全部保留并列项</h3></div>
+              </div>
+              <div class="extreme-grid" id="extremeGrid"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="page" data-view="artists">
+          <div class="section-heading">
+            <div><span class="eyebrow">ARTISTS</span><h2>歌手分析</h2><p>合作歌曲中的每位署名歌手各计一次。</p></div>
+            <span class="section-number">02</span>
+          </div>
+          <div class="panel chart-panel tall">
+            <div class="panel-heading"><div><span>TOP ARTISTS</span><h3>收藏数量排行</h3></div></div>
+            <div class="chart" id="artistPageChart"></div>
+          </div>
+          <div class="panel">
+            <div class="table-toolbar">
+              <input id="artistSearch" type="search" placeholder="搜索歌手">
+              <span id="artistResultCount"></span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>排名</th><th>歌手</th><th>歌曲数量</th><th>占歌曲比例</th></tr></thead>
+                <tbody id="artistTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section class="page" data-view="songs">
+          <div class="section-heading">
+            <div><span class="eyebrow">TRACK EXPLORER</span><h2>歌曲探索</h2><p>搜索、筛选、排序，并回到每一条歌曲记录。</p></div>
+            <span class="section-number">03</span>
+          </div>
+          <div class="panel">
+            <div class="table-toolbar song-toolbar">
+              <input id="songSearch" type="search" placeholder="搜索歌曲、歌手或专辑">
+              <select id="songSort">
+                <option value="title:asc">歌曲名称 ↑</option>
+                <option value="artists:asc">歌手 ↑</option>
+                <option value="duration:desc">时长 ↓</option>
+                <option value="popularity:desc">热度 ↓</option>
+                <option value="popularity:asc">热度 ↑</option>
+              </select>
+              <label class="check-row"><input id="duplicatesOnly" type="checkbox"><span>只看同名</span></label>
+              <div class="export-group">
+                <a id="exportCsv" href="#" download>CSV</a>
+                <a id="exportJson" href="#" download>JSON</a>
+                <a id="exportMd" href="#" download>MD</a>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>歌曲</th><th>歌手</th><th>专辑</th><th>时长</th><th>热度</th></tr></thead>
+                <tbody id="songTable"></tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <button id="prevPage">← 上一页</button>
+              <span id="pageLabel">第 1 / 1 页</span>
+              <button id="nextPage">下一页 →</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="page" data-view="portrait">
+          <div class="section-heading">
+            <div><span class="eyebrow">MUSIC PORTRAIT</span><h2>音乐画像</h2><p>只使用已有且可解释的字段，不推测不存在的曲风信息。</p></div>
+            <span class="section-number">04</span>
+          </div>
+          <div class="portrait-grid">
+            <article class="portrait-card large">
+              <span>TOP 10 歌手覆盖</span>
+              <strong id="portraitConcentration">—</strong>
+              <div class="progress"><i id="concentrationBar"></i></div>
+              <p id="portraitConcentrationText"></p>
+            </article>
+            <article class="portrait-card">
+              <span>平均热度</span>
+              <strong id="portraitPopularity">—</strong>
+              <p>平台公开分值，不代表播放次数。</p>
+            </article>
+            <article class="portrait-card">
+              <span>平均时长</span>
+              <strong id="portraitDuration">—</strong>
+              <p>由有效时长字段计算。</p>
+            </article>
+            <article class="portrait-card">
+              <span>同名歌曲</span>
+              <strong id="portraitDuplicates">—</strong>
+              <p>标题精确匹配，保留专辑差异。</p>
+            </article>
+          </div>
+          <div class="panel portrait-story">
+            <div class="panel-heading"><div><span>DATA STORY</span><h3>这份收藏说明了什么？</h3></div></div>
+            <div id="portraitStory"></div>
+          </div>
+        </section>
+
+        <section class="page" data-view="history">
+          <div class="section-heading">
+            <div><span class="eyebrow">REPORTS</span><h2>历史报告</h2><p>每次分析都是本地快照，比较结果基于真实保存的数据。</p></div>
+            <span class="section-number">05</span>
+          </div>
+          <div class="panel">
+            <div class="panel-heading"><div><span>SNAPSHOTS</span><h3>本机报告</h3></div></div>
+            <div class="history-list" id="historyList"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-heading"><div><span>COMPARE</span><h3>比较两次分析</h3></div></div>
+            <div class="compare-controls">
+              <select id="compareBase"><option value="">选择基准报告</option></select>
+              <span>→</span>
+              <select id="compareTarget"><option value="">选择目标报告</option></select>
+              <button id="compareButton">开始比较</button>
+            </div>
+            <div id="compareResult" class="compare-result"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="task-overlay" id="taskOverlay" hidden>
+      <div class="task-card">
+        <span class="eyebrow">LOCAL ANALYSIS</span>
+        <h2 id="taskTitle">正在读取歌单</h2>
+        <p id="taskMessage">数据只会保存在这台电脑上。</p>
+        <div class="task-progress"><i id="taskProgress"></i></div>
+        <div class="task-meta"><span id="taskCount">准备中</span><b id="taskPercent">0%</b></div>
+        <div class="task-error" id="taskError" hidden></div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>
