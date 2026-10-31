@@ -32,6 +32,8 @@ pip install -r requirements.txt
 python run.py
 ```
 
+Windows 用户也可以在项目目录直接双击 `start.cmd`。它会复用项目内的 `.venv` 并启动服务。
+
 程序默认只监听 `127.0.0.1:8765`，并自动打开：
 
 ```text
