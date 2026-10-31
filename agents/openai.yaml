@@ -1,0 +1,4 @@
+interface:
+  display_name: "网易云喜欢音乐统计"
+  short_description: "统计网易云“喜欢的音乐”歌手、同名歌曲、时长与歌曲热度，并生成可核验报告文件"
+  default_prompt: "使用 $netease-liked-music-stats 统计当前网易云音乐歌单的歌手、同名歌曲、时长与热度。"
