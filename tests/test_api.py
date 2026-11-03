@@ -145,6 +145,15 @@ def test_api_analysis_and_report_routes(tmp_path: Path):
             "extrema.csv",
             "raw_data.json",
         }.issubset(names)
+        readme = archive.read("README.txt").decode("utf-8")
+    assert "把文件交给 AI" in readme
+    assert "summary.json" in readme
+
+    guide = client.get("/api/ai-guide")
+    assert guide.status_code == 200
+    body = guide.json()
+    assert "summary.json" in body["prompt"]
+    assert [item["file"] for item in body["files"]][0] == "summary.json"
 
 
 def test_analyze_rejects_non_playlist_input(tmp_path: Path):
@@ -155,3 +164,24 @@ def test_analyze_rejects_non_playlist_input(tmp_path: Path):
     client = TestClient(app)
     response = client.post("/api/analyze", json={"playlist": "not a playlist"})
     assert response.status_code == 422
+
+
+def test_analyze_reads_id_parameter_regardless_of_position(tmp_path: Path):
+    app = create_app(
+        data_dir=tmp_path,
+        analyzer=lambda *args, **kwargs: {},
+    )
+    client = TestClient(app)
+    links = {
+        "https://music.163.com/m/playlist?id=2352272710&creatorId=1546388498": 2352272710,
+        "https://music.163.com/m/playlist?creatorId=1546388498&id=2352272710": 2352272710,
+        "https://music.163.com/#/playlist?id=2352272710&userid=1546388498": 2352272710,
+        "https://music.163.com/playlist?id=2352272710&userid=1546388498": 2352272710,
+        "2352272710": 2352272710,
+    }
+    for link, expected in links.items():
+        response = client.post("/api/analyze", json={"playlist": link})
+        assert response.status_code == 202, link
+        task = client.get(f"/api/tasks/{response.json()['task_id']}").json()
+        assert task["playlistId"] == expected, link
+

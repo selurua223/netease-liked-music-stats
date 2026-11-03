@@ -51,6 +51,11 @@ def main() -> int:
         f"missing={missing}",
         flush=True,
     )
+    print(
+        "提示：summary.json、report.md、songs.csv 可以直接发给 AI 助手，"
+        "让它基于这些数据解读这份歌单的品味结构。",
+        flush=True,
+    )
     return 0
 
 

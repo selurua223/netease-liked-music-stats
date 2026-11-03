@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.5.0
+
+### AI handoff
+
+- Added a post-download explanation that the statistics files can be sent to an AI assistant for a taste review.
+- Added a copyable prompt in the ZIP `README.txt`, listing which files to send and what to ask.
+- Added an in-app 「用 AI 解读」 dialog plus `GET /api/ai-guide`, sharing the same copy with the archive.
+- Added a one-line hint to the CLI after a successful run.
+
+### Failure paths
+
+- The AI hand-off note now appears only after the ZIP has actually downloaded; a failed download shows a retry hint instead.
+- The analysis overlay gained 重试/关闭 buttons, and no longer appends a duplicate close button on every failure.
+- The prompt asks the AI to read `integrity.status` and `missingSongCount` first, and to lower confidence when data is incomplete.
+
+### Compatibility
+
+- Fixed share links whose `creatorId`/`userid` parameter came before `id`: the API used to take the first long number in the URL and analyze the wrong playlist ID. It now reads the `id` parameter (normal query and `#/playlist?id=` form) first.
+- Fixed a Python 3.10 crash: `datetime.UTC` is 3.11-only, so the API and CLI failed to import on the documented minimum version. Replaced with `datetime.timezone.utc`.
+- CI now runs the test suite on Python 3.10 and 3.12.
+
 ## v0.4.1
 
 - Added one-click ZIP export for every report artifact.

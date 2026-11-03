@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from netease_stats import __version__
+from netease_stats.core.ai_handoff import ai_guide
 from netease_stats.core.analyzer import analyze_playlist
 
 from ..services.reports import ReportNotFoundError, ReportRepository
@@ -64,6 +65,10 @@ def create_app(
             "mode": "local-only",
             "reportCount": len(repository.list_reports()),
         }
+
+    @app.get("/api/ai-guide")
+    def ai_handoff_guide() -> dict[str, Any]:
+        return ai_guide()
 
     @app.post("/api/analyze", status_code=status.HTTP_202_ACCEPTED)
     def analyze(payload: AnalyzeRequest) -> dict[str, Any]:

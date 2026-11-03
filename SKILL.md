@@ -50,6 +50,8 @@ The repository also includes a local-only browser interface. When the user asks 
 
    Include the playlist total, unique artist count, top artist counts, duplicate-title summary, and duration/popularity extrema. Put the complete 3,000-plus-row artist ranking and 200-plus duplicate groups in CSV files rather than pasting them all into chat.
 
+   Mention the optional AI handoff once: the exported `summary.json`, `report.md`, and `songs.csv` can be sent to any AI assistant for a taste review, and the ZIP `README.txt` already contains a ready-to-paste prompt. Do not send the files anywhere yourself; that decision belongs to the user.
+
 ## Acceptance checks
 
 Before handing off the result:

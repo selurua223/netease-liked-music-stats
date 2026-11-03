@@ -122,6 +122,7 @@
               </div>
               <div class="heading-actions">
                 <span class="status-pill" id="integrityPill">完整性校验</span>
+                <button class="ghost-button ai-guide-button" id="openAiGuide" type="button">✦ 用 AI 解读</button>
                 <a class="primary-button download-all" id="downloadBundle" href="#" download>↓ 一键下载全部</a>
               </div>
             </div>
@@ -354,6 +355,10 @@
         <div class="task-progress"><i id="taskProgress"></i></div>
         <div class="task-meta"><span id="taskCount">准备中</span><b id="taskPercent">0%</b></div>
         <div class="task-error" id="taskError" hidden></div>
+        <div class="task-actions" id="taskActions" hidden>
+          <button class="ghost-button" id="taskRetry" type="button">重试</button>
+          <button class="primary-button" id="taskClose" type="button">关闭</button>
+        </div>
       </div>
     </div>
 
@@ -371,6 +376,27 @@
           <div><dt>缺失数据</dt><dd id="metricMissing"></dd></div>
         </dl>
         <p id="metricNote"></p>
+      </div>
+    </div>
+
+    <div class="ai-modal" id="aiGuideModal" hidden>
+      <div class="ai-dialog" role="dialog" aria-modal="true" aria-labelledby="aiGuideTitle">
+        <button class="modal-close" id="aiGuideClose" aria-label="关闭">×</button>
+        <span class="eyebrow">TASTE REVIEW · OPTIONAL</span>
+        <h2 id="aiGuideTitle">把统计文件交给 AI，评价你的音乐品味</h2>
+        <p class="ai-notice" id="aiGuideNotice">
+          统计文件只包含公开歌单的数据，不含账号、Cookie、音频或设备信息。文件只在你主动发送时才会离开这台电脑。
+        </p>
+        <h3 class="ai-subtitle">建议发送</h3>
+        <ul class="ai-files" id="aiGuideFiles"></ul>
+        <div class="ai-prompt-head">
+          <h3 class="ai-subtitle">可以直接复制的提示词</h3>
+          <button class="ghost-button" id="aiGuideCopy" type="button">复制提示词</button>
+        </div>
+        <pre class="ai-prompt" id="aiGuidePrompt"></pre>
+        <h3 class="ai-subtitle">发出去之前值得说明的三件事</h3>
+        <ul class="ai-tips" id="aiGuideTips"></ul>
+        <p class="ai-foot">本工具只负责把数据算准；品味怎么解读，交给 AI 或者由你自己判断。</p>
       </div>
     </div>
   </body>

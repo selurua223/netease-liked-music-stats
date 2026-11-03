@@ -14,6 +14,8 @@
     artistsPerPage: 15,
     insightSongIds: [],
     insightTitle: "",
+    aiGuide: null,
+    aiGuideAutoShown: false,
     charts: {},
   };
 
@@ -626,13 +628,89 @@
     $("#exportMd").href = `/api/reports/${id}/export?kind=markdown`;
   }
 
-  function triggerBundleDownload(reportId) {
-    const anchor = document.createElement("a");
-    anchor.href = `/api/reports/${encodeURIComponent(reportId)}/download-all`;
-    anchor.download = "";
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
+  async function downloadBundle(reportId) {
+    try {
+      const response = await fetch(
+        `/api/reports/${encodeURIComponent(reportId)}/download-all`,
+      );
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const blob = await response.blob();
+      const disposition = response.headers.get("content-disposition") || "";
+      const named = disposition.match(/filename="?([^";]+)"?/);
+      const filename = named ? named[1] : `netease-music-report-${reportId}.zip`;
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 4000);
+      // 只有文件真正下载成功后才说明可以交给 AI；失败时不要误导用户。
+      explainAiHandoff();
+    } catch (error) {
+      toast(`统计文件下载失败：${error.message}。报告仍保存在本机，可以稍后重试。`);
+    }
+  }
+
+  async function ensureAiGuide() {
+    if (state.aiGuide) return state.aiGuide;
+    try {
+      state.aiGuide = await api("/api/ai-guide");
+      return state.aiGuide;
+    } catch {
+      return null;
+    }
+  }
+
+  async function openAiGuide() {
+    const guide = await ensureAiGuide();
+    if (!guide) {
+      toast("AI 提示词加载失败，请刷新页面后重试");
+      return;
+    }
+    $("#aiGuideNotice").textContent = guide.notice;
+    $("#aiGuideFiles").innerHTML = guide.files
+      .map(
+        (item) =>
+          `<li><code>${escapeHtml(item.file)}</code><span>${escapeHtml(item.hint)}</span></li>`,
+      )
+      .join("");
+    $("#aiGuidePrompt").textContent = guide.prompt;
+    $("#aiGuideTips").innerHTML = guide.tips
+      .map((tip) => `<li>${escapeHtml(tip)}</li>`)
+      .join("");
+    $("#aiGuideModal").hidden = false;
+    $("#aiGuideClose").focus();
+  }
+
+  function closeAiGuide() {
+    $("#aiGuideModal").hidden = true;
+  }
+
+  function explainAiHandoff() {
+    // 本次会话第一次下载完成后自动说明一次，之后由「用 AI 解读」按钮随时打开。
+    if (state.aiGuideAutoShown) return;
+    state.aiGuideAutoShown = true;
+    openAiGuide();
+  }
+
+  async function copyAiPrompt() {
+    const text = $("#aiGuidePrompt").textContent;
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      toast("提示词已复制，粘贴给 AI 即可");
+    } catch {
+      const range = document.createRange();
+      range.selectNodeContents($("#aiGuidePrompt"));
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      toast("已选中提示词，按 Ctrl+C 复制");
+    }
   }
 
   function fillCompareOptions() {
@@ -693,6 +771,8 @@
     const errorBox = $("#taskError");
     overlay.hidden = false;
     errorBox.hidden = true;
+    $("#taskActions").hidden = true;
+    count.textContent = "准备中";
     progress.style.width = "2%";
     percent.textContent = "0%";
     try {
@@ -715,9 +795,10 @@
           status.total > 0 ? `${status.completed} / ${status.total} 首` : "准备数据";
         if (status.status === "completed") {
           overlay.hidden = true;
+          $("#taskActions").hidden = true;
           toast("分析完成，全部统计文件已准备好");
           if ($("#autoDownload").checked) {
-            triggerBundleDownload(status.reportId);
+            downloadBundle(status.reportId);
           }
           await loadReports(status.reportId);
           switchPage("dashboard");
@@ -730,17 +811,14 @@
       }
     } catch (error) {
       title.textContent = "分析未完成";
-      message.textContent = "请检查公开歌单链接或网络连接，然后重试。";
+      message.textContent =
+        "没有生成报告，也没有下载任何文件。请确认歌单是公开的、链接正确，然后重试。";
       errorBox.hidden = false;
       errorBox.textContent = error.message;
-      overlay.querySelector(".task-card").insertAdjacentHTML(
-        "beforeend",
-        '<button class="primary-button" id="closeTask" style="margin-top:18px;width:100%">关闭</button>',
-      );
-      $("#closeTask").addEventListener("click", () => {
-        overlay.hidden = true;
-        $("#closeTask")?.remove();
-      });
+      count.textContent = "未完成";
+      percent.textContent = "—";
+      progress.style.width = "0%";
+      $("#taskActions").hidden = false;
     }
   }
 
@@ -844,6 +922,26 @@
     $("#metricModal").addEventListener("click", (event) => {
       if (event.target === $("#metricModal")) $("#metricModal").hidden = true;
     });
+    $("#openAiGuide").addEventListener("click", openAiGuide);
+    $("#aiGuideClose").addEventListener("click", closeAiGuide);
+    $("#aiGuideCopy").addEventListener("click", copyAiPrompt);
+    $("#aiGuideModal").addEventListener("click", (event) => {
+      if (event.target === $("#aiGuideModal")) closeAiGuide();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !$("#aiGuideModal").hidden) closeAiGuide();
+    });
+    $("#downloadBundle").addEventListener("click", (event) => {
+      event.preventDefault();
+      if (state.reportId) downloadBundle(state.reportId);
+    });
+    $("#taskRetry").addEventListener("click", () => {
+      $("#taskOverlay").hidden = true;
+      $("#analyzeForm").requestSubmit();
+    });
+    $("#taskClose").addEventListener("click", () => {
+      $("#taskOverlay").hidden = true;
+    });
     $("#compareButton").addEventListener("click", compareReports);
     window.addEventListener("resize", debounce(() => {
       Object.values(state.charts).forEach((chart) => chart.resize());
@@ -861,6 +959,7 @@
   async function boot() {
     bindEvents();
     await loadHealth();
+    ensureAiGuide();
     try {
       await loadReports();
     } catch (error) {

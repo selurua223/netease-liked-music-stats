@@ -9,6 +9,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any
 
+from netease_stats.core.ai_handoff import readme_section
 from netease_stats.core.profile import PROFILE_VERSION, build_profile
 
 
@@ -140,6 +141,8 @@ class ReportRepository:
                         "extrema.csv：时长与热度极值",
                         "summary.json：完整统计摘要",
                         "raw_data.json：原始接口数据（如分析时启用）",
+                        "",
+                        readme_section(),
                         "",
                         "所有文件均由本地 NetEase Music Analytics 生成。",
                     ]

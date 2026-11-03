@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -88,7 +88,7 @@ def analyze_playlist(
     summary["integrity"] = integrity.to_dict()
     summary["metadata"] = {
         "projectVersion": __version__,
-        "generatedAt": datetime.now(UTC).isoformat(),
+        "generatedAt": datetime.now(timezone.utc).isoformat(),
         "dataSource": "public NetEase Cloud Music API",
         "privacy": "local-only; no account credentials",
     }

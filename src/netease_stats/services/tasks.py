@@ -6,7 +6,7 @@ import secrets
 import threading
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -53,7 +53,7 @@ class TaskService:
             "total": 0,
             "percent": 0,
             "error": None,
-            "createdAt": datetime.now(UTC).isoformat(),
+            "createdAt": datetime.now(timezone.utc).isoformat(),
         }
         with self._lock:
             self._tasks[task_id] = task
